@@ -43,6 +43,7 @@ endif()
 
 if(MSVC)
 	set(LOVE_CONSOLE_EXE_NAME lovec)
+	set(LOVE_TEXT_FILES TRUE)
 endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -171,9 +172,6 @@ Please see https://github.com/love2d/megasource
 	find_package(ZLIB REQUIRED)
 	find_package(Ogg REQUIRED)
 
-	# required for enet
-	add_definitions(-D HAS_SOCKLEN_T)
-
 	set(LOVE_INCLUDE_DIRS
 		${SDL2_INCLUDE_DIR}
 		${FREETYPE_INCLUDE_DIRS}
@@ -218,6 +216,11 @@ Please see https://github.com/love2d/megasource
 		${LOVE_LUA_LIBRARY}
 	)
 
+endif()
+
+if(UNIX)
+	# required for enet
+	add_definitions(-D HAS_SOCKLEN_T)
 endif()
 
 ###
@@ -1846,10 +1849,6 @@ if(NOT ANDROID)
 	endif()
 endif()
 
-if (NOT MSVC)
-	return()
-endif()
-
 ###################################
 # Version
 ###################################
@@ -1875,7 +1874,11 @@ message(STATUS "Version: ${LOVE_VERSION_STR}")
 ###################################
 # CPack
 ###################################
-install(TARGETS ${LOVE_EXE_NAME} ${LOVE_CONSOLE_EXE_NAME} ${LOVE_LIB_NAME} RUNTIME DESTINATION .)
+if(MSVC)
+	set(CMAKE_INSTALL_BINDIR .)
+	set(CMAKE_INSTALL_LIBDIR .)
+endif()
+install(TARGETS ${LOVE_EXE_NAME} ${LOVE_CONSOLE_EXE_NAME} ${LOVE_LIB_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # Extra DLLs.
 if(LOVE_EXTRA_DLLS)
@@ -1883,7 +1886,7 @@ if(LOVE_EXTRA_DLLS)
 		get_filename_component(DLL_NAME ${DLL} NAME)
 		message(STATUS "Extra DLL: ${DLL_NAME}")
 	endforeach()
-	install(FILES ${LOVE_EXTRA_DLLS} DESTINATION .)
+	install(FILES ${LOVE_EXTRA_DLLS} DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
 # Dynamic runtime libs.
@@ -1892,7 +1895,7 @@ if(LOVE_MSVC_DLLS)
 		get_filename_component(DLL_NAME ${DLL} NAME)
 		message(STATUS "Runtime DLL: ${DLL_NAME}")
 	endforeach()
-	install(FILES ${LOVE_MSVC_DLLS} DESTINATION .)
+	install(FILES ${LOVE_MSVC_DLLS} DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
 # Copy a text file from CMAKE_CURRENT_SOURCE_DIR to CMAKE_CURRENT_BINARY_DIR.
@@ -1907,17 +1910,72 @@ copy_text_file(readme.md readme.txt)
 copy_text_file(license.txt license.txt)
 copy_text_file(changes.txt changes.txt)
 
-install(FILES
+if(LOVE_TEXT_FILES)
+	install(FILES
 		${CMAKE_CURRENT_BINARY_DIR}/changes.txt
 		${CMAKE_CURRENT_BINARY_DIR}/license.txt
 		${CMAKE_CURRENT_BINARY_DIR}/readme.txt
 		DESTINATION .)
+endif()
 
 # Icons
-install(FILES
+if(MSVC)
+	install(FILES
 		${CMAKE_CURRENT_SOURCE_DIR}/extra/nsis/love.ico
 		${CMAKE_CURRENT_SOURCE_DIR}/extra/nsis/game.ico
 		DESTINATION .)
+elseif(UNIX)
+	set(bindir ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/platform/unix/love.desktop.in love.desktop)
+	unset(bindir)
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/love.desktop
+		DESTINATION share/applications)
+	install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/platform/unix/love.svg
+		DESTINATION share/pixmaps)
+	install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/platform/unix/application-x-love-game.svg
+		DESTINATION share/icons/hicolor/scalable/mimetypes)
+	install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/platform/unix/love.xml
+		DESTINATION share/mime/packages)
+endif()
+
+###################################
+# AppImage packaging
+###################################
+if(MEGA AND UNIX AND NOT APPLE AND APPIMAGE)
+	set(BINDIR "${CMAKE_BINARY_DIR}")
+	set(APPDIR "${BINDIR}/AppDir")
+	file(REMOVE_RECURSE "${APPDIR}") # if exists
+	file(MAKE_DIRECTORY "${APPDIR}")
+	set(IMGTOOL "${BINDIR}/AppImageTool.AppImage" CACHE INTERNAL "")
+	if(NOT EXISTS "${IMGTOOL}")
+		file(DOWNLOAD "https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-${CMAKE_HOST_SYSTEM_PROCESSOR}.AppImage" "${IMGTOOL}")
+		execute_process(COMMAND chmod +x "${IMGTOOL}")
+	endif()
+
+	install(FILES
+		${CMAKE_CURRENT_SOURCE_DIR}/platform/unix/love.svg
+		${CMAKE_CURRENT_SOURCE_DIR}/extra/appimage/love.desktop
+		DESTINATION .)
+
+	add_executable(AppRun ${CMAKE_CURRENT_SOURCE_DIR}/extra/appimage/AppRun.c)
+	add_custom_target(AppImage
+		COMMAND cmake --install "${BINDIR}" --prefix "${APPDIR}"
+		COMMAND cp "${CMAKE_CURRENT_BINARY_DIR}/AppRun" "${APPDIR}"
+		COMMAND strip "${APPDIR}/lib/*"
+		COMMAND "${IMGTOOL}" "${APPDIR}" "${BINDIR}/love.AppImage"
+		COMMAND rm -rf "${APPDIR}"
+		DEPENDS love ${MEGA_LIBPNG} AppRun)
+endif()
+
+###################################
+# CPack specific things below
+###################################
+if(NOT MSVC)
+	return()
+endif()
 
 set(CPACK_GENERATOR ZIP NSIS)
 set(CPACK_PACKAGE_NAME "love")
