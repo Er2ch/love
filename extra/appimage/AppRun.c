@@ -202,9 +202,9 @@ int main(int argc, char *argv[]) {
     /* LÖVE specific patches */
     old_env = getenv("LUA_PATH");
     if (old_env) {
-        SET_NEW_ENV(new_lua_path, appdir_s*2 + strlen(old_env), "LUA_PATH=%s;%s/share/luajit-2.1.0-beta3/?.lua;%s/share/lua/5.1/?.lua;;", old_env, appdir, appdir);
+        SET_NEW_ENV(new_lua_path, appdir_s*2 + strlen(old_env), "LUA_PATH=%s;%s/share/luajit/?.lua;%s/share/lua/5.1/?.lua;;", old_env, appdir, appdir);
     } else {
-        SET_NEW_ENV(new_lua_path, appdir_s*2, "LUA_PATH=%s/share/luajit-2.1.0-beta3/?.lua;%s/share/lua/5.1/?.lua;;", appdir, appdir);
+        SET_NEW_ENV(new_lua_path, appdir_s*2, "LUA_PATH=%s/share/luajit/?.lua;%s/share/lua/5.1/?.lua;;", appdir, appdir);
     }
 
     old_env = getenv("LUA_CPATH");
