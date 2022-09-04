@@ -1802,6 +1802,7 @@ if(ANDROID)
 endif()
 
 add_library(${LOVE_LIB_NAME} SHARED ${LOVE_LIB_SRC} ${LOVE_RC})
+set_target_properties(${LOVE_LIB_NAME} PROPERTIES PREFIX "")
 target_link_libraries(${LOVE_LIB_NAME} ${LOVE_LINK_LIBRARIES} ${LOVE_3P})
 
 if(LOVE_EXTRA_DEPENDECIES)
@@ -1944,7 +1945,7 @@ endif()
 ###################################
 # AppImage packaging
 ###################################
-if(MEGA AND UNIX AND NOT APPLE AND APPIMAGE)
+if(UNIX AND NOT APPLE AND APPIMAGE)
 	set(BINDIR "${CMAKE_BINARY_DIR}")
 	set(APPDIR "${BINDIR}/AppDir")
 	file(REMOVE_RECURSE "${APPDIR}") # if exists
@@ -1967,7 +1968,7 @@ if(MEGA AND UNIX AND NOT APPLE AND APPIMAGE)
 		COMMAND strip "${APPDIR}/lib/*"
 		COMMAND "${IMGTOOL}" "${APPDIR}" "${BINDIR}/love.AppImage"
 		COMMAND rm -rf "${APPDIR}"
-		DEPENDS love ${MEGA_LIBPNG} AppRun)
+		DEPENDS love AppRun)
 endif()
 
 ###################################

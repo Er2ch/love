@@ -6,7 +6,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Update APT
-      # omg how bad microsoft repos
       run: sudo apt update
     - name: Install Dependencies
       run: sudo apt install --assume-yes build-essential git cmake libfuse2 libsdl2-dev
